@@ -50,7 +50,7 @@ def create_type_definition_file(doc, method=None):
                 if not type_path.exists():
                     type_path.mkdir()
 
-                module_path: Path = type_path / module_name.replace(" ", "")
+                module_path: Path = type_path / module_name.replace(" ", "_")
                 if not module_path.exists():
                     module_path.mkdir()
 
@@ -59,8 +59,8 @@ def create_type_definition_file(doc, method=None):
 
 def generate_type_definition_file(doctype, module_path, generate_child_tables=False):
 
-    doctype_name = doctype.name.replace(" ", "")
-    type_file_path = module_path / (doctype_name + ".ts")
+    doctype_name = doctype.name.lower().replace(" ", "_")
+    type_file_path = module_path / "doctype" / doctype_name / (doctype_name + ".types.ts")
     type_file_content = generate_type_definition_content(
         doctype, module_path, generate_child_tables)
 
@@ -104,7 +104,7 @@ def get_field_comment(field):
 
 
 def get_field_type_definition(field, doctype, module_path, generate_child_tables):
-    field_type,import_statement =  get_field_type(field, doctype, module_path, generate_child_tables)
+    field_type, import_statement =  get_field_type(field, doctype, module_path, generate_child_tables)
     return field.fieldname + get_required(field) + ": " + field_type , import_statement
 
 
@@ -155,12 +155,28 @@ def get_field_type(field, doctype, module_path, generate_child_tables):
                 t = t[:-3]
             return t, None
         else:
-            return 'string',None
+            return 'string', None
 
     if field.fieldtype in basic_fieldtypes:
         return basic_fieldtypes[field.fieldtype], None
     else:
         return "any", None
+
+
+def get_doctype_path(doctype_name):
+    """
+    Get the path of a doctype.
+
+    Args:
+        doctype_name (str): The name of the doctype.
+
+    Returns:
+        str: The path of the doctype.
+    """
+    doctype = frappe.get_doc("DocType", doctype_name)
+    module = doctype.module
+    return Path('../../../') / module.lower().replace(" ", "_") / 'doctype' / doctype_name.lower().replace(" ", "_")
+
 
 
 def get_imports_for_table_fields(field, doctype, module_path, generate_child_tables):
@@ -186,8 +202,9 @@ def get_imports_for_table_fields(field, doctype, module_path, generate_child_tab
             else:
                 should_import = True
             
-            import_statement = ("import { " + field.options.replace(" ", "") + " } from './" +
-                                    field.options.replace(" ", "") + "'") + "\n" if should_import else ''
+            import_dir = get_doctype_path(field.options)
+            import_statement = ("import { " + field.options.replace(" ", "") + " } from '" + import_dir.as_posix() + '/' +
+                                    field.options.lower().replace(" ", "_") + ".types'") + "\n" if should_import else ''
 
         else:
 
@@ -210,6 +227,7 @@ def get_imports_for_table_fields(field, doctype, module_path, generate_child_tab
 
             import_statement = ("import { " + field.options.replace(" ", "") + " } from '../" +
                                     table_module_name.replace(" ", "") + "/" + field.options.replace(" ", "") + "'") + "\n" if should_import else ''
+            print("2: ", import_statement)
 
         return field.options.replace(" ", "") + "[]" if should_import else 'any', import_statement
     return "",None
@@ -285,22 +303,34 @@ def generate_types_for_doctype(doctype, app_name, generate_child_tables=False, c
                 'Type Generation Settings'
             ).as_dict().type_settings
 
-            # Checking if app is existed in type generation settings
-            for type_setting in type_generation_settings:
-                if app_name == type_setting.app_name:
-                    # Types folder is created in the app
-                    # path: Path = type_setting.app_path / "types"
-                    type_path: Path = app_path / type_setting.app_path / "types"
-                    if not type_path.exists():
-                        type_path.mkdir()
+            type_path: Path = app_path / app_name
+            if not type_path.exists():
+                type_path.mkdir()
 
-                    module_path: Path = type_path / \
-                        module_name.replace(" ", "")
-                    if not module_path.exists():
-                        module_path.mkdir()
+            module_path: Path = type_path / \
+                module_name.lower().replace(" ", "_")
+            if not module_path.exists():
+                module_path.mkdir()
 
-                    generate_type_definition_file(
-                        doc, module_path, generate_child_tables)
+            generate_type_definition_file(
+                doc, module_path, generate_child_tables)
+
+            # # Checking if app is existed in type generation settings
+            # for type_setting in type_generation_settings:
+            #     if app_name == type_setting.app_name:
+            #         # Types folder is created in the app
+            #         # path: Path = type_setting.app_path / "types"
+            #         type_path: Path = app_path / type_setting.app_path / "types"
+            #         if not type_path.exists():
+            #             type_path.mkdir()
+
+            #         module_path: Path = type_path / \
+            #             module_name.replace(" ", "")
+            #         if not module_path.exists():
+            #             module_path.mkdir()
+
+            #         generate_type_definition_file(
+            #             doc, module_path, generate_child_tables)
                
     except Exception as e:
         err_msg = f": {str(e)}\n{frappe.get_traceback()}"

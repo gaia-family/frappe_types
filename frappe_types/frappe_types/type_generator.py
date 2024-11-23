@@ -67,9 +67,20 @@ def generate_type_definition_file(doctype, module_path, generate_child_tables=Fa
     create_file(type_file_path, type_file_content)
 
 
+def get_select_enum(field):
+    options = field.options.split("\n")
+    enum_name = field.fieldname.replace(" ", "")
+    enum_code = f"enum {enum_name} {{\n"
+    for option in options:
+        enum_code += f"    \"{option.replace(' ', '_').replace('-', '_').upper()}\" = \"{option}\",\n"
+    enum_code += "}\n"
+    return enum_name, enum_code
+
+
 def generate_type_definition_content(doctype, module_path, generate_child_tables):
     import_statement = ""
 
+    pre_content = ""
     content = "export interface " + doctype.name.replace(" ", "") + "{\n"
 
     # Boilerplate types for all documents
@@ -83,7 +94,7 @@ def generate_type_definition_content(doctype, module_path, generate_child_tables
             continue
         content += get_field_comment(field)
 
-        file_defination, statement = get_field_type_definition(
+        file_defination, statement, enum_code = get_field_type_definition(
             field, doctype, module_path, generate_child_tables)
 
         if statement and import_statement.find(statement) == -1:
@@ -91,9 +102,12 @@ def generate_type_definition_content(doctype, module_path, generate_child_tables
         
         content += "\t" + file_defination + "\n"
 
+        if enum_code is not None:
+            pre_content += "export " + enum_code + "\n"
+
     content += "}"
 
-    return import_statement + "\n" + content
+    return import_statement + "\n" + pre_content + content
 
 def get_field_comment(field):
     desc = field.description
@@ -104,8 +118,8 @@ def get_field_comment(field):
 
 
 def get_field_type_definition(field, doctype, module_path, generate_child_tables):
-    field_type, import_statement =  get_field_type(field, doctype, module_path, generate_child_tables)
-    return field.fieldname + get_required(field) + ": " + field_type , import_statement
+    field_type, import_statement, enum_code =  get_field_type(field, doctype, module_path, generate_child_tables)
+    return field.fieldname + get_required(field) + ": " + field_type , import_statement, enum_code
 
 
 def get_field_type(field, doctype, module_path, generate_child_tables):
@@ -142,25 +156,24 @@ def get_field_type(field, doctype, module_path, generate_child_tables):
     }
 
     if field.fieldtype in ["Table", "Table MultiSelect"]:
-
-        return get_imports_for_table_fields(field, doctype, module_path, generate_child_tables)
+        return get_imports_for_table_fields(field, doctype, module_path, generate_child_tables) + (None, )
 
     if field.fieldtype == "Select":
         if (field.options):
             options = field.options.split("\n")
-            t = ""
-            for option in options:
-                t += "\"" + option + "\" | "
-            if t.endswith(" | "):
-                t = t[:-3]
-            return t, None
+            t, enum_code = get_select_enum(field)
+            # for option in options:
+            #     t += "\"" + option + "\" | "
+            # if t.endswith(" | "):
+            #     t = t[:-3]
+            return t, None, enum_code
         else:
-            return 'string', None
+            return 'string', None, None
 
     if field.fieldtype in basic_fieldtypes:
-        return basic_fieldtypes[field.fieldtype], None
+        return basic_fieldtypes[field.fieldtype], None, None
     else:
-        return "any", None
+        return "any", None, None
 
 
 def get_doctype_path(doctype_name):

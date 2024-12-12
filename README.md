@@ -25,7 +25,7 @@ After installing the app, search for "Type Generation Settings" in Desk using th
 
 That's it.
 
-Now whenever you create or update any DocType on your local machine, the app will generate `.ts` files under at the following path: `app/src/types/<module_def>/<doctype_name>.ts`.
+Now whenever you create or update any DocType on your local machine, the app will generate `.ts` files alonside the doctype.
 
 <br/>
 

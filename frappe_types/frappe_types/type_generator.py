@@ -5,7 +5,6 @@ import subprocess
 
 
 def create_type_definition_file(doc, method=None):
-
     # Check if type generation is paused
     common_site_config = frappe.get_conf()
 
@@ -15,7 +14,7 @@ def create_type_definition_file(doc, method=None):
     if frappe_types_pause_generation:
         print("Frappe Types is paused")
         return
-    
+
     if frappe.flags.in_patch or frappe.flags.in_migrate or frappe.flags.in_install or frappe.flags.in_setup_wizard:
         print("Skipping type generation in patch, migrate, install or setup wizard")
         return
@@ -36,29 +35,19 @@ def create_type_definition_file(doc, method=None):
             print("App path does not exist - ignoring type generation")
             return
 
-        # Fetch Type Generation Settings Document
-        type_generation_settings = frappe.get_doc(
-            'Type Generation Settings'
-        ).as_dict().type_settings
+        type_path: Path = app_path / app_name
+        if not type_path.exists():
+            type_path.mkdir()
 
-        # Checking if app is existed in type generation settings
-        for type_setting in type_generation_settings:
-            if app_name == type_setting.app_name:
-                # Types folder is created in the app
-                type_path: Path = app_path / type_setting.app_path / "types"
+        module_path: Path = type_path / \
+            module_name.lower().replace(" ", "_")
+        if not module_path.exists():
+            module_path.mkdir()
 
-                if not type_path.exists():
-                    type_path.mkdir()
-
-                module_path: Path = type_path / module_name.replace(" ", "_")
-                if not module_path.exists():
-                    module_path.mkdir()
-
-                generate_type_definition_file(
-                    doctype, module_path, generate_child_tables=False)
+        generate_type_definition_file(
+            doctype, module_path, generate_child_tables=False)
 
 def generate_type_definition_file(doctype, module_path, generate_child_tables=False):
-
     doctype_name = doctype.name.lower().replace(" ", "_")
     type_file_path = module_path / "doctype" / doctype_name / (doctype_name + ".types.ts")
     type_file_content = generate_type_definition_content(
@@ -99,7 +88,7 @@ def generate_type_definition_content(doctype, module_path, generate_child_tables
 
         if statement and import_statement.find(statement) == -1:
             import_statement += statement
-        
+
         content += "\t" + file_defination + "\n"
 
         if enum_code is not None:
@@ -134,7 +123,6 @@ def get_field_type(field, doctype, module_path, generate_child_tables):
         "Dynamic Link": "string",
         "Read Only": "string",
         "Password": "string",
-        "Text Editor": "string",
         "Check": "0 | 1",
         "Int": "number",
         "Float": "number",
@@ -145,7 +133,6 @@ def get_field_type(field, doctype, module_path, generate_child_tables):
         "HTML Editor": "string",
         "Image": "string",
         "Duration": "string",
-        "Small Text": "string",
         "Date": "string",
         "Datetime": "string",
         "Time": "string",
@@ -160,12 +147,7 @@ def get_field_type(field, doctype, module_path, generate_child_tables):
 
     if field.fieldtype == "Select":
         if (field.options):
-            options = field.options.split("\n")
             t, enum_code = get_select_enum(field)
-            # for option in options:
-            #     t += "\"" + option + "\" | "
-            # if t.endswith(" | "):
-            #     t = t[:-3]
             return t, None, enum_code
         else:
             return 'string', None, None
@@ -214,7 +196,7 @@ def get_imports_for_table_fields(field, doctype, module_path, generate_child_tab
 
             else:
                 should_import = True
-            
+
             import_dir = get_doctype_path(field.options)
             import_statement = ("import { " + field.options.replace(" ", "") + " } from '" + import_dir.as_posix() + '/' +
                                     field.options.lower().replace(" ", "_") + ".types'") + "\n" if should_import else ''
@@ -240,7 +222,6 @@ def get_imports_for_table_fields(field, doctype, module_path, generate_child_tab
 
             import_statement = ("import { " + field.options.replace(" ", "") + " } from '../" +
                                     table_module_name.replace(" ", "") + "/" + field.options.replace(" ", "") + "'") + "\n" if should_import else ''
-            print("2: ", import_statement)
 
         return field.options.replace(" ", "") + "[]" if should_import else 'any', import_statement
     return "",None
@@ -273,20 +254,17 @@ def is_developer_mode_enabled():
 
 
 def before_migrate():
-    # print("Before migrate")
     subprocess.run(
         ["bench", "config", "set-common-config", "-c", "frappe_types_pause_generation", "1"])
 
 
 def after_migrate():
-    # print("After migrate")
     subprocess.run(["bench", "config", "set-common-config",
                    "-c", "frappe_types_pause_generation", "0"])
 
 
 @frappe.whitelist()
 def generate_types_for_doctype(doctype, app_name, generate_child_tables=False, custom_fields=False):
-
     try:
         # custom_fields True means that the generate .ts file for custom fields with original fields
         doc = frappe.get_meta(doctype) if custom_fields else frappe.get_doc(
@@ -311,11 +289,6 @@ def generate_types_for_doctype(doctype, app_name, generate_child_tables=False, c
                 print("App path does not exist - ignoring type generation")
                 return
 
-            # Fetch Type Generation Settings Document
-            type_generation_settings = frappe.get_doc(
-                'Type Generation Settings'
-            ).as_dict().type_settings
-
             type_path: Path = app_path / app_name
             if not type_path.exists():
                 type_path.mkdir()
@@ -328,23 +301,6 @@ def generate_types_for_doctype(doctype, app_name, generate_child_tables=False, c
             generate_type_definition_file(
                 doc, module_path, generate_child_tables)
 
-            # # Checking if app is existed in type generation settings
-            # for type_setting in type_generation_settings:
-            #     if app_name == type_setting.app_name:
-            #         # Types folder is created in the app
-            #         # path: Path = type_setting.app_path / "types"
-            #         type_path: Path = app_path / type_setting.app_path / "types"
-            #         if not type_path.exists():
-            #             type_path.mkdir()
-
-            #         module_path: Path = type_path / \
-            #             module_name.replace(" ", "")
-            #         if not module_path.exists():
-            #             module_path.mkdir()
-
-            #         generate_type_definition_file(
-            #             doc, module_path, generate_child_tables)
-               
     except Exception as e:
         err_msg = f": {str(e)}\n{frappe.get_traceback()}"
         print(

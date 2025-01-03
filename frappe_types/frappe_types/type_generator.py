@@ -47,6 +47,7 @@ def create_type_definition_file(doc, method=None):
         generate_type_definition_file(
             doctype, module_path, generate_child_tables=False)
 
+
 def generate_type_definition_file(doctype, module_path, generate_child_tables=False):
     doctype_name = doctype.name.lower().replace(" ", "_")
     type_file_path = module_path / "doctype" / doctype_name / (doctype_name + ".types.ts")
@@ -58,7 +59,7 @@ def generate_type_definition_file(doctype, module_path, generate_child_tables=Fa
 
 def get_select_enum(field):
     options = field.options.split("\n")
-    enum_name = field.fieldname.replace(" ", "")
+    enum_name = field.fieldname.replace(" ", "").capitalize()
     enum_code = f"enum {enum_name} {{\n"
     for option in options:
         enum_code += f"    \"{option.replace(' ', '_').replace('-', '_').upper()}\" = \"{option}\",\n"

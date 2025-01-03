@@ -71,7 +71,7 @@ def generate_type_definition_content(doctype, module_path, generate_child_tables
     import_statement = ""
 
     pre_content = ""
-    content = "export interface " + doctype.name.replace(" ", "") + "{\n"
+    content = "export interface " + doctype.name.replace(" ", "") + " {\n"
 
     # Boilerplate types for all documents
     name_field_type = "string"

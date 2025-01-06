@@ -59,7 +59,7 @@ def generate_type_definition_file(doctype, module_path, generate_child_tables=Fa
 
 def get_select_enum(field):
     options = field.options.split("\n")
-    enum_name = field.fieldname.replace("_", " ").title()replace(" ", "")
+    enum_name = field.fieldname.replace("_", " ").title().replace(" ", "")
     enum_code = f"enum {enum_name} {{\n"
     for option in options:
         enum_code += f"    \"{option.replace(' ', '_').replace('-', '_').upper()}\" = \"{option}\",\n"

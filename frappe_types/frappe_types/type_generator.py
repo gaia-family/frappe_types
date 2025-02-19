@@ -4,6 +4,18 @@ from .utils import create_file
 import subprocess
 
 
+def title_case_to_snake_case(input: str) -> str:
+    return input.lower().replace("-", "_").replace(" ", "_")
+
+def title_case_to_pascal_case(input: str) -> str:
+    return input.replace("-", "").replace(" ", "")
+
+def snake_case_to_pascal_case(input: str) -> str:
+    return input.replace("_", " ").title().replace(" ", "")
+
+def title_case_to_screaming_snake_case(input: str) -> str:
+    return input.replace(" ", "_").replace("-", "_").upper()
+
 def create_type_definition_file(doc, method=None):
     # Check if type generation is paused
     common_site_config = frappe.get_conf()
@@ -40,7 +52,7 @@ def create_type_definition_file(doc, method=None):
             type_path.mkdir()
 
         module_path: Path = type_path / \
-            module_name.lower().replace(" ", "_")
+            title_case_to_snake_case(module_name)
         if not module_path.exists():
             module_path.mkdir()
 
@@ -49,7 +61,7 @@ def create_type_definition_file(doc, method=None):
 
 
 def generate_type_definition_file(doctype, module_path, generate_child_tables=False):
-    doctype_name = doctype.name.lower().replace(" ", "_")
+    doctype_name = title_case_to_snake_case(doctype.name)
     type_file_path = module_path / "doctype" / doctype_name / (doctype_name + ".types.ts")
     type_file_content = generate_type_definition_content(
         doctype, module_path, generate_child_tables)
@@ -59,10 +71,10 @@ def generate_type_definition_file(doctype, module_path, generate_child_tables=Fa
 
 def get_select_enum(field):
     options = field.options.split("\n")
-    enum_name = field.fieldname.replace("_", " ").title().replace(" ", "")
+    enum_name = snake_case_to_pascal_case(field.fieldname)
     enum_code = f"enum {enum_name} {{\n"
     for option in options:
-        enum_code += f"    \"{option.replace(' ', '_').replace('-', '_').upper()}\" = \"{option}\",\n"
+        enum_code += f"    \"{title_case_to_screaming_snake_case(option)}\" = \"{option}\",\n"
     enum_code += "}\n"
     return enum_name, enum_code
 
@@ -71,7 +83,7 @@ def generate_type_definition_content(doctype, module_path, generate_child_tables
     import_statement = ""
 
     pre_content = ""
-    content = "export interface " + doctype.name.replace(" ", "") + " {\n"
+    content = "export interface " + title_case_to_pascal_case(doctype.name) + " {\n"
 
     # Boilerplate types for all documents
     name_field_type = "string"
@@ -171,7 +183,7 @@ def get_doctype_path(doctype_name):
     """
     doctype = frappe.get_doc("DocType", doctype_name)
     module = doctype.module
-    return Path('../../../') / module.lower().replace(" ", "_") / 'doctype' / doctype_name.lower().replace(" ", "_")
+    return Path('../../../') / title_case_to_snake_case(module) / 'doctype' / title_case_to_snake_case(doctype_name)
 
 
 
@@ -200,7 +212,7 @@ def get_imports_for_table_fields(field, doctype, module_path, generate_child_tab
 
             import_dir = get_doctype_path(field.options)
             import_statement = ("import { " + field.options.replace(" ", "") + " } from '" + import_dir.as_posix() + '/' +
-                                    field.options.lower().replace(" ", "_") + ".types'") + "\n" if should_import else ''
+                                    title_case_to_snake_case(field.options) + ".types'") + "\n" if should_import else ''
 
         else:
 
@@ -295,7 +307,7 @@ def generate_types_for_doctype(doctype, app_name, generate_child_tables=False, c
                 type_path.mkdir()
 
             module_path: Path = type_path / \
-                module_name.lower().replace(" ", "_")
+                title_case_to_snake_case(module_name)
             if not module_path.exists():
                 module_path.mkdir()
 

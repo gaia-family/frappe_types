@@ -4,11 +4,9 @@ from .utils import create_file
 import subprocess
 
 
-# have updated to remove dashes
 def title_case_to_snake_case(input: str) -> str:
     return input.lower().replace("-", "_").replace(" ", "_")
 
-# have updated to remove dashes
 def title_case_to_pascal_case(input: str) -> str:
     return input.replace("-", "").replace(" ", "")
 

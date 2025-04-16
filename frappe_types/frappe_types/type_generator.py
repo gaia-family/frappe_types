@@ -74,7 +74,11 @@ def get_select_enum(field):
     enum_name = snake_case_to_pascal_case(field.fieldname)
     enum_code = f"enum {enum_name} {{\n"
     for option in options:
+        if not option:
+            continue
+
         enum_code += f"    \"{title_case_to_screaming_snake_case(option)}\" = \"{option}\",\n"
+
     enum_code += "}\n"
     return enum_name, enum_code
 
@@ -159,7 +163,7 @@ def get_field_type(field, doctype, module_path, generate_child_tables):
         return get_imports_for_table_fields(field, doctype, module_path, generate_child_tables) + (None, )
 
     if field.fieldtype == "Select":
-        if (field.options):
+        if (field.options.strip()):
             t, enum_code = get_select_enum(field)
             return t, None, enum_code
         else:
